@@ -1,11 +1,12 @@
 import logging
 
-from redis import Redis
 from environs import Env
+from redis import Redis
 from telegram import KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (CommandHandler, ConversationHandler, Filters,
                           MessageHandler, RegexHandler, Updater)
 
+import config
 from quiz_loader import load_quiz
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -15,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN = range(7)
 
-HELPME = 'ПАМАГИТИИИ!!!!'
-yes_no_keyboard = [['Да', 'Нет']]
+yes_no_keyboard = [[config.YES, config.NO]]
 yes_no_markup = ReplyKeyboardMarkup(yes_no_keyboard, resize_keyboard=True, one_time_keyboard=True)
-helpme_markup = ReplyKeyboardMarkup([[HELPME]], resize_keyboard=True, one_time_keyboard=True)
+
+helpme_markup = ReplyKeyboardMarkup([[config.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 quiz_questions = None
 redis = None
@@ -41,8 +42,7 @@ def get_redis_var(user_id, name):
 
 def start(update, _):
     update.message.reply_text(
-        f'Привет, {update.effective_user.first_name}!\n'
-        'Хочешь поучаствовать в викторине?',
+        config.START_GAME.format(update.effective_user.first_name),
         reply_markup=yes_no_markup)
     return CHOOSING
 
@@ -56,20 +56,20 @@ def next_question(user_id, questions):
 def start_game(update, context):
     global quiz_questions
 
-    if update.message.text == 'Да':
-        update.message.reply_text('Поехали!!!')
+    if update.message.text == config.YES:
+        update.message.reply_text(config.GOGOGO)
         questions_count, quiz_questions = get_quiz_questions()
         context.bot_data['questions_count'] = questions_count
         context.bot_data['good_answers'] = 0
 
         next_question(update.effective_user.id, quiz_questions)
-        update.message.reply_text(f'Вопрос:\n{get_redis_var(update.effective_user.id, "query")}',
+        update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                   reply_markup=helpme_markup)
 
         return CHECK_ANSWER
 
-    elif update.message.text == 'Нет':
-        update.message.reply_text('Ну, что ж... Заходи как-нибудь, поиграем...')
+    elif update.message.text == config.NO:
+        update.message.reply_text(config.LET_ANOTHER_TIME)
         return ConversationHandler.END
 
     else:
@@ -79,11 +79,11 @@ def start_game(update, context):
 def check_answer(update, context):
     global quiz_questions
 
-    if update.message.text == HELPME:
-        update.message.reply_text(f'Правильный ответ:\n{get_redis_var(update.effective_user.id, "answer")}')
+    if update.message.text == config.HELPME:
+        update.message.reply_text(config.RIGHT_ANSWER.format(get_redis_var(update.effective_user.id, 'answer')))
         try:
             next_question(update.effective_user.id, quiz_questions)
-            update.message.reply_text(f'Вопрос:\n{get_redis_var(update.effective_user.id, "query")}',
+            update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
         except StopIteration as exc:
@@ -91,53 +91,51 @@ def check_answer(update, context):
             return END_GAME
 
     if update.message.text.lower() in get_redis_var(update.effective_user.id, 'answer').lower():
-        update.message.reply_text('Правильно!')
+        update.message.reply_text(config.PRAISE)
         context.bot_data['good_answers'] += 1
 
         try:
             next_question(update.effective_user.id, quiz_questions)
-            update.message.reply_text(f'Вопрос:\n{get_redis_var(update.effective_user.id, "query")}',
+            update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
         except StopIteration as exc:
             end_game(update, context)
             return END_GAME
     else:
-        update.message.reply_text('Неправильный ответ... Попробуешь ещё раз ответить?', reply_markup=yes_no_markup)
+        update.message.reply_text(config.WRONG_ANSWER, reply_markup=yes_no_markup)
         return REPEAT_QUESTION
 
 
-def repeat_question(update, context):
-    if update.message.text == 'Да':
-        update.message.reply_text(f'Вопрос:\n{get_redis_var(update.effective_user.id, "query")}',
+def repeat_question(update, _):
+    if update.message.text == config.YES:
+        update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                   reply_markup=helpme_markup)
-
         return CHECK_ANSWER
-    elif update.message.text == 'Нет':
-        update.message.reply_text('Ну, что ж... Может, сыграем в новую игру?', reply_markup=yes_no_markup)
+
+    elif update.message.text == config.NO:
+        update.message.reply_text(config.LET_NEWGAME, reply_markup=yes_no_markup)
         return REPEAT_GAME
 
 
 def repeat_game(update, context):
-    if update.message.text == 'Да':
+    if update.message.text == config.YES:
         start_game(update, context)
         return CHECK_ANSWER
-    elif update.message.text == 'Нет':
-        update.message.reply_text('Ну, что ж... Заходи как-нибудь, поиграем...')
+    elif update.message.text == config.NO:
+        update.message.reply_text(config.LET_ANOTHER_TIME)
         return ConversationHandler.END
 
 
 def end_game(update, context):
     update.message.reply_text(
-        'Больше вопросов нет.\n'
-        f'Вы правильно ответили на {context.bot_data["good_answers"]} '
-        f'вопросов из {context.bot_data["questions_count"]}\n'
-        'Хотите сыграть ещё раз?', reply_markup=yes_no_markup)
+        config.END_GAME.format(context.bot_data['good_answers'], context.bot_data['questions_count']),
+        reply_markup=yes_no_markup)
     return REPEAT_GAME
 
 
 def done(update, _):
-    update.message.reply_text('Ок, до свидания!')
+    update.message.reply_text(config.BYE)
     return ConversationHandler.END
 
 
