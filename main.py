@@ -2,12 +2,13 @@ import logging
 
 from environs import Env
 from redis import Redis
+from viktorina_redis import set_redis_var, get_redis_var
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (CommandHandler, ConversationHandler, Filters, MessageHandler, Updater)
 
 import config
 from config import (CHOOSING, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
-from quiz_loader import load_quiz
+from quizzes import get_quiz_questions
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -24,21 +25,6 @@ quiz_questions = None
 redis = None
 
 
-def get_quiz_questions():
-    quizzes = load_quiz('quiz-questions/1vs1200.txt')
-    return len(quizzes), iter(quizzes)
-
-
-def set_redis_var(user_id, name, value):
-    global redis
-    redis.set(f'{str(user_id)}:{name}', value)
-
-
-def get_redis_var(user_id, name):
-    global redis
-    return redis.get(f'{str(user_id)}:{name}').decode('utf-8')
-
-
 def start(update, _):
     update.message.reply_text(
         config.START_GAME.format(update.effective_user.first_name),
@@ -48,8 +34,8 @@ def start(update, _):
 
 def next_question(user_id, questions):
     query = next(questions)
-    set_redis_var(user_id, 'query', query['query'])
-    set_redis_var(user_id, 'answer', query['answer'])
+    set_redis_var(redis, user_id, 'query', query['query'])
+    set_redis_var(redis, user_id, 'answer', query['answer'])
 
 
 def start_game(update, context):
@@ -62,7 +48,7 @@ def start_game(update, context):
         context.bot_data['good_answers'] = 0
 
         next_question(update.effective_user.id, quiz_questions)
-        update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
+        update.message.reply_text(config.QUESTION.format(get_redis_var(redis, update.effective_user.id, 'query')),
                                   reply_markup=helpme_markup)
 
         return CHECK_ANSWER
@@ -79,23 +65,23 @@ def check_answer(update, context):
     global quiz_questions
 
     if update.message.text == config.HELPME:
-        update.message.reply_text(config.RIGHT_ANSWER.format(get_redis_var(update.effective_user.id, 'answer')))
+        update.message.reply_text(config.RIGHT_ANSWER.format(get_redis_var(redis, update.effective_user.id, 'answer')))
         try:
             next_question(update.effective_user.id, quiz_questions)
-            update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
+            update.message.reply_text(config.QUESTION.format(get_redis_var(redis, update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
         except StopIteration:
             end_game(update, context)
             return END_GAME
 
-    if update.message.text.lower() in get_redis_var(update.effective_user.id, 'answer').lower():
+    if update.message.text.lower() in get_redis_var(redis, update.effective_user.id, 'answer').lower():
         update.message.reply_text(config.PRAISE)
         context.bot_data['good_answers'] += 1
 
         try:
             next_question(update.effective_user.id, quiz_questions)
-            update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
+            update.message.reply_text(config.QUESTION.format(get_redis_var(redis, update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
         except StopIteration:
@@ -108,7 +94,7 @@ def check_answer(update, context):
 
 def repeat_question(update, _):
     if update.message.text == config.YES:
-        update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
+        update.message.reply_text(config.QUESTION.format(get_redis_var(redis, update.effective_user.id, 'query')),
                                   reply_markup=helpme_markup)
         return CHECK_ANSWER
 
