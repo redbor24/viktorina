@@ -2,11 +2,11 @@ import logging
 
 from environs import Env
 from redis import Redis
-from telegram import KeyboardButton, ReplyKeyboardMarkup
-from telegram.ext import (CommandHandler, ConversationHandler, Filters,
-                          MessageHandler, RegexHandler, Updater)
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import (CommandHandler, ConversationHandler, Filters, MessageHandler, Updater)
 
 import config
+from config import (CHOOSING, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
 from quiz_loader import load_quiz
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -14,7 +14,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN = range(7)
 
 yes_no_keyboard = [[config.YES, config.NO]]
 yes_no_markup = ReplyKeyboardMarkup(yes_no_keyboard, resize_keyboard=True, one_time_keyboard=True)
@@ -86,7 +85,7 @@ def check_answer(update, context):
             update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
-        except StopIteration as exc:
+        except StopIteration:
             end_game(update, context)
             return END_GAME
 
@@ -99,7 +98,7 @@ def check_answer(update, context):
             update.message.reply_text(config.QUESTION.format(get_redis_var(update.effective_user.id, 'query')),
                                       reply_markup=helpme_markup)
             return CHECK_ANSWER
-        except StopIteration as exc:
+        except StopIteration:
             end_game(update, context)
             return END_GAME
     else:
@@ -114,7 +113,7 @@ def repeat_question(update, _):
         return CHECK_ANSWER
 
     elif update.message.text == config.NO:
-        update.message.reply_text(config.LET_NEWGAME, reply_markup=yes_no_markup)
+        update.message.reply_text(config.LET_NEW_GAME, reply_markup=yes_no_markup)
         return REPEAT_GAME
 
 
@@ -129,7 +128,7 @@ def repeat_game(update, context):
 
 def end_game(update, context):
     update.message.reply_text(
-        config.END_GAME.format(context.bot_data['good_answers'], context.bot_data['questions_count']),
+        config.STOP_GAME.format(context.bot_data['good_answers'], context.bot_data['questions_count']),
         reply_markup=yes_no_markup)
     return REPEAT_GAME
 
@@ -140,7 +139,6 @@ def done(update, _):
 
 
 def error(update, update_error):
-    """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, update_error)
 
 
