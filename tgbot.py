@@ -10,9 +10,9 @@ import config
 from config import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
 from quiz import QuizQuestions
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+USER_PREFIX = 'tg'
 
+logging.basicConfig(format=config.log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -23,18 +23,18 @@ helpme_markup = ReplyKeyboardMarkup([[config.HELPME]], resize_keyboard=True, one
 
 
 def get_next_question(user_id, redis, quiz):
-    unanswered_question_id = get_redis_var(redis, user_id, 'question_id')
+    unanswered_question_id = get_redis_var(redis, USER_PREFIX, user_id, 'question_id')
 
     if unanswered_question_id:
         question = quiz.get_question(unanswered_question_id)
     else:
-        answered_questions = get_redis_var(redis, user_id, 'answered', 'list')
+        answered_questions = get_redis_var(redis, USER_PREFIX, user_id, 'answered', 'list')
         logger.info(f'answered_questions: {answered_questions}')
         if len(answered_questions) == len(quiz.questions):
             answered_questions = []
-            set_redis_var(redis, user_id, 'answered', answered_questions)
+            set_redis_var(redis, USER_PREFIX, user_id, 'answered', answered_questions)
         question_id, question = quiz.get_random_question(answered_questions)
-        set_redis_var(redis, user_id, 'question_id', question_id)
+        set_redis_var(redis, USER_PREFIX, user_id, 'question_id', question_id)
 
     return question
 
@@ -63,31 +63,32 @@ def start_game(update, _):
         return UNKNOWN
 
 
-def save_answered(user_id, redis, question_id):
-    answered_questions = get_redis_var(redis, user_id, 'answered', 'list')
+def save_answered_question_ids(user_id, redis, question_id):
+    answered_questions = get_redis_var(redis, USER_PREFIX, user_id, 'answered', 'list')
     answered_questions.append(question_id)
-    set_redis_var(redis, user_id, 'answered', answered_questions)
+    set_redis_var(redis, USER_PREFIX, user_id, 'answered', answered_questions)
 
 
 def check_answer(update, _):
     if update.message.text == config.HELPME:
-        question_id = get_redis_var(rds, update.effective_user.id, 'question_id')
+        question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id')
         question = quiz.get_question(question_id)
         update.message.reply_text(config.RIGHT_ANSWER.format(question['answer']))
-        set_redis_var(rds, update.effective_user.id, 'question_id', '')
-        save_answered(update.effective_user.id, rds, question_id)
+        set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
+        save_answered_question_ids(update.effective_user.id, rds, question_id)
 
         update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
         return NEXT_QUESTION
 
-    question_id = get_redis_var(rds, update.effective_user.id, 'question_id')
+    question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id')
     question = quiz.get_question(question_id)
 
     if update.message.text.lower() in question['answer'].lower():
         update.message.reply_text(config.PRAISE)
-        set_redis_var(rds, update.effective_user.id, 'question_id', '')
-        save_answered(update.effective_user.id, rds, question_id)
+        update.message.reply_text(config.ANSWER.format(question['answer'].strip()))
+        set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
+        save_answered_question_ids(update.effective_user.id, rds, question_id)
 
         update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 

@@ -2,17 +2,17 @@ from environs import Env
 from redis import Redis
 
 
-def set_redis_var(redis, user_id, var_name, var_value):
+def set_redis_var(redis, user_prefix, user_id, var_name, var_value):
     if isinstance(var_value, list):
-        redis.set(f'{str(user_id)}:{var_name}', ','.join(str(x) for x in var_value))
+        redis.set(f'{user_prefix}_{str(user_id)}:{var_name}', ','.join(str(x) for x in var_value))
     else:
-        redis.set(f'{str(user_id)}:{var_name}', var_value)
+        redis.set(f'{user_prefix}_{str(user_id)}:{var_name}', var_value)
 
 
-def get_redis_var(redis, user_id, var_name, var_type=None):
+def get_redis_var(redis, user_prefix, user_id, var_name, var_type=None):
     if var_type == 'list':
         try:
-            redis_value = redis.get(f'{str(user_id)}:{var_name}').decode('utf-8')
+            redis_value = redis.get(f'{user_prefix}_{str(user_id)}:{var_name}').decode('utf-8')
             if redis_value:
                 return [int(element) for element in redis_value.split(',')]
             else:
@@ -21,7 +21,7 @@ def get_redis_var(redis, user_id, var_name, var_type=None):
             return []
     else:
         try:
-            return redis.get(f'{str(user_id)}:{var_name}').decode('utf-8')
+            return redis.get(f'{user_prefix}_{str(user_id)}:{var_name}').decode('utf-8')
         except AttributeError:
             return ''
 
