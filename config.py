@@ -1,6 +1,5 @@
 log_format = '%(asctime)s %(name)s:%(levelname)s:%(message)s'
 log_date_format = '%Y-%m-%d %H:%M:%S'
-vk_log_filename = 'victorina_vk.log'
 
 HELPME = 'ПАМАГИТИИИ!!!!'
 
@@ -17,6 +16,7 @@ STOP_GAME = 'Больше вопросов нет.\nВы правильно от
 NEW_GAME = 'Начать викторину'
 
 RIGHT_ANSWER = 'Правильный ответ:\n{0}'
+ANSWER = 'Ответ:\n{0}'
 WRONG_ANSWER = 'Неправильный ответ. Попробуешь ещё раз ответить?'
 
 QUESTION = 'Внимание! Вопрос:\n{0}'
