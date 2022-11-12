@@ -19,9 +19,7 @@ logging.basicConfig(format=config.log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-yes_no_keyboard = [[config.YES, config.NO]]
-yes_no_markup = ReplyKeyboardMarkup(yes_no_keyboard, resize_keyboard=True, one_time_keyboard=True)
-
+yes_no_markup = ReplyKeyboardMarkup([[config.YES, config.NO]], resize_keyboard=True, one_time_keyboard=True)
 helpme_markup = ReplyKeyboardMarkup([[config.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 
