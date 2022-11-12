@@ -2,13 +2,16 @@ import logging
 
 from environs import Env
 from redis import Redis
-from viktorina_redis import set_redis_var, get_redis_var, get_next_question, save_answered_question_ids
 from telegram import ReplyKeyboardMarkup
-from telegram.ext import (CommandHandler, ConversationHandler, Filters, MessageHandler, Updater)
+from telegram.ext import (CommandHandler, ConversationHandler, Filters,
+                          MessageHandler, Updater)
 
 import config
-from config import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
+from config import (CHECK_ANSWER, CHOOSING, END_GAME, NEXT_QUESTION,
+                    REPEAT_GAME, REPEAT_QUESTION, UNKNOWN)
 from quiz import QuizQuestions
+from viktorina_redis import (get_next_question, get_redis_var,
+                             save_answered_question_ids, set_redis_var)
 
 USER_PREFIX = 'tg'
 
