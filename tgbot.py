@@ -2,7 +2,7 @@ import logging
 
 from environs import Env
 from redis import Redis
-from viktorina_redis import set_redis_var, get_redis_var
+from viktorina_redis import set_redis_var, get_redis_var, get_next_question
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (CommandHandler, ConversationHandler, Filters, MessageHandler, Updater)
 
@@ -22,23 +22,6 @@ yes_no_markup = ReplyKeyboardMarkup(yes_no_keyboard, resize_keyboard=True, one_t
 helpme_markup = ReplyKeyboardMarkup([[config.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 
-def get_next_question(user_id, redis, quiz):
-    unanswered_question_id = get_redis_var(redis, USER_PREFIX, user_id, 'question_id')
-
-    if unanswered_question_id:
-        question = quiz.get_question(unanswered_question_id)
-    else:
-        answered_questions = get_redis_var(redis, USER_PREFIX, user_id, 'answered', 'list')
-        logger.info(f'answered_questions: {answered_questions}')
-        if len(answered_questions) == len(quiz.questions):
-            answered_questions = []
-            set_redis_var(redis, USER_PREFIX, user_id, 'answered', answered_questions)
-        question_id, question = quiz.get_random_question(answered_questions)
-        set_redis_var(redis, USER_PREFIX, user_id, 'question_id', question_id)
-
-    return question
-
-
 def start(update, _):
     update.message.reply_text(
         config.START_GAME.format(update.effective_user.first_name),
@@ -51,7 +34,7 @@ def start_game(update, _):
         update.message.reply_text(config.GOGOGO)
         update.message.reply_text(config.CHOOSING_RANDOM_QUIZ)
 
-        question = get_next_question(update.effective_user.id, rds, quiz)
+        question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
         update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
         return CHECK_ANSWER
 
@@ -102,7 +85,7 @@ def check_answer(update, _):
 def next_question(update, context):
     if update.message.text == config.YES:
         try:
-            question = get_next_question(update.effective_user.id, rds, quiz)
+            question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
             update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
             return CHECK_ANSWER
         except StopIteration:
@@ -116,7 +99,7 @@ def next_question(update, context):
 
 def repeat_question(update, _):
     if update.message.text == config.YES:
-        question = get_next_question(update.effective_user.id, rds, quiz)
+        question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
         update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
         return CHECK_ANSWER
 
