@@ -43,6 +43,12 @@ def get_next_question(user_prefix, user_id, redis, quiz):
     return question
 
 
+def save_answered_question_ids(user_prefix, user_id, redis, question_id):
+    answered_questions = get_redis_var(redis, user_prefix, user_id, 'answered', 'list')
+    answered_questions.append(question_id)
+    set_redis_var(redis, user_prefix, user_id, 'answered', answered_questions)
+
+
 if __name__ == '__main__':
     env = Env()
     env.read_env()

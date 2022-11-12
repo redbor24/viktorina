@@ -2,7 +2,7 @@ import logging
 
 from environs import Env
 from redis import Redis
-from viktorina_redis import set_redis_var, get_redis_var, get_next_question
+from viktorina_redis import set_redis_var, get_redis_var, get_next_question, save_answered_question_ids
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (CommandHandler, ConversationHandler, Filters, MessageHandler, Updater)
 
@@ -46,19 +46,13 @@ def start_game(update, _):
         return UNKNOWN
 
 
-def save_answered_question_ids(user_id, redis, question_id):
-    answered_questions = get_redis_var(redis, USER_PREFIX, user_id, 'answered', 'list')
-    answered_questions.append(question_id)
-    set_redis_var(redis, USER_PREFIX, user_id, 'answered', answered_questions)
-
-
 def check_answer(update, _):
     if update.message.text == config.HELPME:
         question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id')
         question = quiz.get_question(question_id)
         update.message.reply_text(config.RIGHT_ANSWER.format(question['answer']))
         set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
-        save_answered_question_ids(update.effective_user.id, rds, question_id)
+        save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
 
         update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
@@ -71,7 +65,7 @@ def check_answer(update, _):
         update.message.reply_text(config.PRAISE)
         update.message.reply_text(config.ANSWER.format(question['answer'].strip()))
         set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
-        save_answered_question_ids(update.effective_user.id, rds, question_id)
+        save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
 
         update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
