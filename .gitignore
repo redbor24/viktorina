@@ -8,6 +8,6 @@ scratch.py
 /__pycache__
 /.idea
 /venv
-/quiz-questions
+/quiz-questions_UNUSED
 quiz-questions.zip
 /redis-windows
