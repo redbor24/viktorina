@@ -10,19 +10,27 @@ def set_redis_var(redis, user_prefix, user_id, var_name, var_value):
 
 
 def get_redis_var(redis, user_prefix, user_id, var_name, var_type=None):
-    if var_type == 'list':
-        try:
-            redis_value = redis.get(f'{user_prefix}_{str(user_id)}:{var_name}').decode('utf-8')
+    try:
+        redis_value = redis.get(f'{user_prefix}_{str(user_id)}:{var_name}').decode('utf-8')
+
+        if var_type == 'list':
             if redis_value:
                 return [int(element) for element in redis_value.split(',')]
             else:
                 return []
-        except AttributeError:
+        elif var_type == 'int':
+            if redis_value:
+                return int(redis_value)
+            else:
+                return 0
+        else:
+            return redis_value
+    except AttributeError:
+        if var_type == 'list':
             return []
-    else:
-        try:
-            return redis.get(f'{user_prefix}_{str(user_id)}:{var_name}').decode('utf-8')
-        except AttributeError:
+        elif var_type == 'int':
+            return None
+        else:
             return ''
 
 
@@ -43,10 +51,11 @@ def get_next_question(user_prefix, user_id, redis, quiz):
     return question
 
 
-def save_answered_question_ids(user_prefix, user_id, redis, question_id):
+def save_answered_question_ids(user_prefix, user_id, redis, question_id, logger=None):
     answered_questions = get_redis_var(redis, user_prefix, user_id, 'answered', 'list')
     answered_questions.append(question_id)
     set_redis_var(redis, user_prefix, user_id, 'answered', answered_questions)
+    logger.info(answered_questions)
 
 
 if __name__ == '__main__':
@@ -63,10 +72,40 @@ if __name__ == '__main__':
     # redis.delete(f'{str(user_id)}:{"question_id"}')
     # print(get_redis_var(redis, user_id, 'question_id'))
 
-    # redis.flushdb()
+    redis.flushdb()
+    exit()
 
-    S1, S2 = range(2)
+    user_id = 225300898
 
-    # set_redis_var(redis, 'tg', user_id, 'state', S2)
-    redis.delete(f'tg_{str(user_id)}:state')
-    print(get_redis_var(redis, 'tg', user_id, 'state'))
+    prefix = 'vk'
+    var_type = 'int'
+    print(get_redis_var(redis, prefix, user_id, 'state'))
+    redis.delete(f'vk_{str(user_id)}:state')
+    exit()
+
+    prefix = 'tst'
+    var_name = 'var_int'
+    var_type = 'int'
+    set_redis_var(redis, prefix, user_id, var_name, 0)
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name, var_type)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
+    set_redis_var(redis, prefix, user_id, var_name, 123)
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name, var_type)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
+
+    var_name = 'var_list'
+    var_type = 'list'
+    set_redis_var(redis, prefix, user_id, var_name, [])
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name, var_type)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
+    set_redis_var(redis, prefix, user_id, var_name, [1, 2, 3])
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name, var_type)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
+
+    var_name = 'var'
+    set_redis_var(redis, prefix, user_id, var_name, '')
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
+    set_redis_var(redis, prefix, user_id, var_name, 'ss123')
+    print(f'{var_name}({var_type}): {{0}}'.format(get_redis_var(redis, prefix, user_id, var_name)))
+    redis.delete(f'{prefix}_{str(user_id)}:{var_name}')
