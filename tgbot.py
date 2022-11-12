@@ -49,7 +49,7 @@ def start_game(update, _):
 
 def check_answer(update, _):
     if update.message.text == config.HELPME:
-        question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id')
+        question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', 'int')
         question = quiz.get_question(question_id)
         update.message.reply_text(config.RIGHT_ANSWER.format(question['answer']))
         set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
@@ -59,7 +59,7 @@ def check_answer(update, _):
 
         return NEXT_QUESTION
 
-    question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id')
+    question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', 'int')
     question = quiz.get_question(question_id)
 
     if update.message.text.lower() in question['answer'].lower():
@@ -77,15 +77,11 @@ def check_answer(update, _):
         return REPEAT_QUESTION
 
 
-def next_question(update, context):
+def next_question(update, _):
     if update.message.text == config.YES:
-        try:
-            question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
-            update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
-            return CHECK_ANSWER
-        except StopIteration:
-            end_game(update, context)
-            return END_GAME
+        question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
+        update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
+        return CHECK_ANSWER
 
     elif update.message.text == config.NO:
         update.message.reply_text(config.LET_NEW_GAME, reply_markup=yes_no_markup)
@@ -131,11 +127,11 @@ if __name__ == '__main__':
     env.read_env()
 
     redis_link = env('REDIS_LINK')
-    redis_port = env('REDIS_PORT', 6379)
-    redis_db = env('REDIS_DB', 0)
-    rds = Redis(host=redis_link, port=redis_port, db=redis_db)
+    redis_port = env('REDIS_PORT')
+    redis_password = env('REDIS_PASSWORD')
+    rds = Redis(host=redis_link, port=redis_port, password=redis_password)
 
-    quiz = QuizQuestions('quiz-questions', '*.txt', _slice=10)
+    quiz = QuizQuestions('quiz-questions', '*.txt')
     quiz.load_quiz()
 
     tg_token = env('TG_TOKEN')

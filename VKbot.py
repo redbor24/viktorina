@@ -70,15 +70,14 @@ if __name__ == "__main__":
     env.read_env()
 
     redis_link = env('REDIS_LINK')
-    redis_port = env('REDIS_PORT', 6379)
-    redis_db = env('REDIS_DB', 0)
-    rds = Redis(host=redis_link, port=redis_port, db=redis_db)
+    redis_port = env('REDIS_PORT')
+    redis_password = env('REDIS_PASSWORD')
+    rds = Redis(host=redis_link, port=redis_port, password=redis_password)
 
     vk_token = env('VK_TOKEN')
     vk_session = vk.VkApi(token=vk_token)
     vk_api = vk_session.get_api()
 
-    # quiz = QuizQuestions('quiz-questions', '*.txt', _slice=3)
     quiz = QuizQuestions('quiz-questions', '*.txt')
     quiz.load_quiz()
 
@@ -95,11 +94,10 @@ if __name__ == "__main__":
             else:
                 user_state = int(user_state)
 
-            if user_state == END_GAME:
-                if vk_event.text.lower() == config.CMD_NEW_GAME_VK:
-                    send_message(vk_event, vk_api, config.START_GAME.format('чувак!'), get_yesno_keyboard())
-                    set_redis_var(rds, USER_PREFIX, user_id, 'state', CHOOSING)
-                    continue
+            if vk_event.text.lower() == config.CMD_NEW_GAME_VK:
+                send_message(vk_event, vk_api, config.START_GAME.format('чувак!'), get_yesno_keyboard())
+                set_redis_var(rds, USER_PREFIX, user_id, 'state', CHOOSING)
+                continue
 
             elif user_state == CHOOSING:
                 if vk_event.text == config.YES:
@@ -118,18 +116,18 @@ if __name__ == "__main__":
 
             elif user_state == CHECK_ANSWER:
                 if vk_event.text == config.HELPME:
-                    question_id = get_redis_var(rds, USER_PREFIX, user_id, 'question_id')
+                    question_id = get_redis_var(rds, USER_PREFIX, user_id, 'question_id', 'int')
                     question = quiz.get_question(question_id)
                     send_message(vk_event, vk_api, config.RIGHT_ANSWER.format(question['answer']))
 
                     set_redis_var(rds, USER_PREFIX, user_id, 'question_id', '')
-                    save_answered_question_ids(USER_PREFIX, user_id, rds, question_id, logger)
+                    save_answered_question_ids(USER_PREFIX, user_id, rds, question_id)
 
                     send_message(vk_event, vk_api, config.ASK_NEXT_QUESTION, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', NEXT_QUESTION)
                     continue
 
-                question_id = get_redis_var(rds, USER_PREFIX, user_id, 'question_id')
+                question_id = get_redis_var(rds, USER_PREFIX, user_id, 'question_id', 'int')
                 question = quiz.get_question(question_id)
 
                 if vk_event.text.lower() in question['answer'].lower():
@@ -137,7 +135,7 @@ if __name__ == "__main__":
                     send_message(vk_event, vk_api, config.ANSWER.format(question['answer'].strip()))
 
                     set_redis_var(rds, USER_PREFIX, user_id, 'question_id', '')
-                    save_answered_question_ids(USER_PREFIX, user_id, rds, question_id, logger)
+                    save_answered_question_ids(USER_PREFIX, user_id, rds, question_id)
 
                     send_message(vk_event, vk_api, config.ASK_NEXT_QUESTION, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', NEXT_QUESTION)
