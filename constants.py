@@ -1,6 +1,10 @@
 log_format = '%(asctime)s %(name)s:%(levelname)s:%(message)s'
 log_date_format = '%Y-%m-%d %H:%M:%S'
 
+redis_var_template = '{0}_{1}:{2}'
+redis_unanswered_question_id = 'unanswered_question_id'
+redis_conversation_state = 'state'
+
 HELPME = 'ПАМАГИТИИИ!!!!'
 
 YES = 'Да'
