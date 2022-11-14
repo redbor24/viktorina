@@ -126,10 +126,10 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
 
-    redis_link = env('REDIS_LINK')
+    redis_host = env('REDIS_HOST')
     redis_port = env('REDIS_PORT')
     redis_password = env('REDIS_PASSWORD')
-    rds = Redis(host=redis_link, port=redis_port, password=redis_password)
+    rds = Redis(host=redis_host, port=redis_port, password=redis_password)
 
     quiz = QuizQuestions('quiz-questions', '*.txt')
     quiz.load_quiz()
