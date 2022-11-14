@@ -1,6 +1,8 @@
 from pathlib import Path
 from random import choice
 
+from constants import redis_unanswered_question_id, redis_var_template
+
 SEARCH, QUERY, ANSWER, COMMENT = range(4)
 
 
@@ -46,6 +48,15 @@ def load_questions(file):
                     question['comment'] = comment.strip()
                     mode = SEARCH
     return file_questions
+
+
+def get_next_question(user_prefix, user_id, redis, quiz):
+    unanswered_question_id = redis.get(redis_var_template.format(user_prefix, user_id, redis_unanswered_question_id))
+    question_id, question = quiz.get_question(unanswered_question_id)
+    if not unanswered_question_id:
+        redis.set(redis_var_template.format(user_prefix, user_id, redis_unanswered_question_id), question_id)
+
+    return question
 
 
 class QuizQuestions:
