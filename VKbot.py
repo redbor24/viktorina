@@ -10,7 +10,7 @@ from vk_api.longpoll import VkEventType, VkLongPoll
 from vk_api.utils import get_random_id
 
 import constants
-from constants import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
+from constants import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME)
 from quiz import QuizQuestions
 
 USER_PREFIX = 'vk'
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     quiz = QuizQuestions('quiz-questions', '*.txt')
     quiz.load_quiz()
 
-    states = {}
+    # states = {}
 
     long_poll = VkLongPoll(vk_session)
     for vk_event in long_poll.listen():

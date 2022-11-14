@@ -8,7 +8,7 @@ from telegram.ext import (CommandHandler, ConversationHandler, Filters,
 
 import constants
 from constants import (CHECK_ANSWER, CHOOSING, END_GAME, NEXT_QUESTION,
-                       REPEAT_GAME, REPEAT_QUESTION, UNKNOWN)
+                       REPEAT_GAME, REPEAT_QUESTION)
 from quiz import QuizQuestions
 from viktorina_redis import (get_next_question, get_redis_var,
                              save_answered_question_ids, set_redis_var)
@@ -38,9 +38,6 @@ def start_game(update, _):
     elif update.message.text == constants.NO:
         update.message.reply_text(constants.LET_ANOTHER_TIME)
         return ConversationHandler.END
-
-    else:
-        return UNKNOWN
 
 
 def check_answer(update, _):
