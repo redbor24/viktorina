@@ -9,13 +9,13 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.longpoll import VkEventType, VkLongPoll
 from vk_api.utils import get_random_id
 
-import config
-from config import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
+import constants
+from constants import (CHOOSING, NEXT_QUESTION, REPEAT_QUESTION, CHECK_ANSWER, END_GAME, REPEAT_GAME, UNKNOWN)
 from quiz import QuizQuestions
 
 USER_PREFIX = 'vk'
 
-logging.basicConfig(format=config.log_format, level=logging.INFO)
+logging.basicConfig(format=constants.log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -40,28 +40,28 @@ def get_yesno_keyboard():
 def get_help_keyboard():
     keyboard = VkKeyboard(one_time=True)
 
-    keyboard.add_button(config.HELPME, color=VkKeyboardColor.PRIMARY)
+    keyboard.add_button(constants.HELPME, color=VkKeyboardColor.PRIMARY)
     return keyboard.get_keyboard()
 
 
 def get_new_game_keyboard():
     keyboard = VkKeyboard(one_time=True)
 
-    keyboard.add_button(config.NEW_GAME, color=VkKeyboardColor.PRIMARY)
+    keyboard.add_button(constants.NEW_GAME, color=VkKeyboardColor.PRIMARY)
     return keyboard.get_keyboard()
 
 
 def start_game(event, api, redis, quiz):
-    if event.text == config.YES:
-        send_message(event, api, config.GOGOGO)
-        send_message(event, api, config.CHOOSING_RANDOM_QUIZ)
+    if event.text == constants.YES:
+        send_message(event, api, constants.GOGOGO)
+        send_message(event, api, constants.CHOOSING_RANDOM_QUIZ)
 
         question = get_next_question(USER_PREFIX, event.user_id, redis, quiz)
-        send_message(event, api, config.QUESTION.format(question['query']), get_help_keyboard())
+        send_message(event, api, constants.QUESTION.format(question['query']), get_help_keyboard())
         set_redis_var(redis, USER_PREFIX, user_id, 'state', CHECK_ANSWER)
 
-    elif event.text == config.NO:
-        send_message(event, api, config.LET_ANOTHER_TIME)
+    elif event.text == constants.NO:
+        send_message(event, api, constants.LET_ANOTHER_TIME)
         set_redis_var(redis, USER_PREFIX, user_id, 'state', END_GAME)
 
 
@@ -94,36 +94,36 @@ if __name__ == "__main__":
             else:
                 user_state = int(user_state)
 
-            if vk_event.text.lower() == config.CMD_NEW_GAME_VK:
-                send_message(vk_event, vk_api, config.START_GAME.format('чувак!'), get_yesno_keyboard())
+            if vk_event.text.lower() == constants.CMD_NEW_GAME_VK:
+                send_message(vk_event, vk_api, constants.START_GAME.format('чувак!'), get_yesno_keyboard())
                 set_redis_var(rds, USER_PREFIX, user_id, 'state', CHOOSING)
                 continue
 
             elif user_state == CHOOSING:
-                if vk_event.text == config.YES:
-                    send_message(vk_event, vk_api, config.GOGOGO)
-                    send_message(vk_event, vk_api, config.CHOOSING_RANDOM_QUIZ)
+                if vk_event.text == constants.YES:
+                    send_message(vk_event, vk_api, constants.GOGOGO)
+                    send_message(vk_event, vk_api, constants.CHOOSING_RANDOM_QUIZ)
 
                     question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, config.QUESTION.format(question['query']), get_help_keyboard())
+                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', CHECK_ANSWER)
                     continue
 
-                elif vk_event.text == config.NO:
-                    send_message(vk_event, vk_api, config.LET_ANOTHER_TIME)
+                elif vk_event.text == constants.NO:
+                    send_message(vk_event, vk_api, constants.LET_ANOTHER_TIME)
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', END_GAME)
                     continue
 
             elif user_state == CHECK_ANSWER:
-                if vk_event.text == config.HELPME:
+                if vk_event.text == constants.HELPME:
                     question_id = get_redis_var(rds, USER_PREFIX, user_id, 'question_id', 'int')
                     question = quiz.get_question(question_id)
-                    send_message(vk_event, vk_api, config.RIGHT_ANSWER.format(question['answer']))
+                    send_message(vk_event, vk_api, constants.RIGHT_ANSWER.format(question['answer']))
 
                     set_redis_var(rds, USER_PREFIX, user_id, 'question_id', '')
                     save_answered_question_ids(USER_PREFIX, user_id, rds, question_id)
 
-                    send_message(vk_event, vk_api, config.ASK_NEXT_QUESTION, get_yesno_keyboard())
+                    send_message(vk_event, vk_api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', NEXT_QUESTION)
                     continue
 
@@ -131,52 +131,52 @@ if __name__ == "__main__":
                 question = quiz.get_question(question_id)
 
                 if vk_event.text.lower() in question['answer'].lower():
-                    send_message(vk_event, vk_api, config.PRAISE)
-                    send_message(vk_event, vk_api, config.ANSWER.format(question['answer'].strip()))
+                    send_message(vk_event, vk_api, constants.PRAISE)
+                    send_message(vk_event, vk_api, constants.ANSWER.format(question['answer'].strip()))
 
                     set_redis_var(rds, USER_PREFIX, user_id, 'question_id', '')
                     save_answered_question_ids(USER_PREFIX, user_id, rds, question_id)
 
-                    send_message(vk_event, vk_api, config.ASK_NEXT_QUESTION, get_yesno_keyboard())
+                    send_message(vk_event, vk_api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', NEXT_QUESTION)
                     continue
 
                 else:
-                    send_message(vk_event, vk_api, config.WRONG_ANSWER, get_yesno_keyboard())
+                    send_message(vk_event, vk_api, constants.WRONG_ANSWER, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', REPEAT_QUESTION)
                     continue
 
             elif user_state == REPEAT_QUESTION:
-                if vk_event.text == config.YES:
+                if vk_event.text == constants.YES:
                     question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, config.QUESTION.format(question['query']), get_help_keyboard())
+                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', CHECK_ANSWER)
                     continue
 
-                elif vk_event.text == config.NO:
-                    send_message(vk_event, vk_api, config.LET_NEW_GAME, get_yesno_keyboard())
+                elif vk_event.text == constants.NO:
+                    send_message(vk_event, vk_api, constants.LET_NEW_GAME, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', REPEAT_GAME)
                     continue
 
             elif user_state == REPEAT_GAME:
-                if vk_event.text == config.YES:
+                if vk_event.text == constants.YES:
                     start_game(vk_event, vk_api, rds, quiz)
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', CHECK_ANSWER)
                     continue
 
-                elif vk_event.text == config.NO:
-                    send_message(vk_event, vk_api, config.LET_ANOTHER_TIME)
+                elif vk_event.text == constants.NO:
+                    send_message(vk_event, vk_api, constants.LET_ANOTHER_TIME)
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', END_GAME)
                     continue
 
             elif user_state == NEXT_QUESTION:
-                if vk_event.text == config.YES:
+                if vk_event.text == constants.YES:
                     question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, config.QUESTION.format(question['query']), get_help_keyboard())
+                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', CHECK_ANSWER)
                     continue
 
-                elif vk_event.text == config.NO:
-                    send_message(vk_event, vk_api, config.LET_NEW_GAME, get_yesno_keyboard())
+                elif vk_event.text == constants.NO:
+                    send_message(vk_event, vk_api, constants.LET_NEW_GAME, get_yesno_keyboard())
                     set_redis_var(rds, USER_PREFIX, user_id, 'state', REPEAT_GAME)
                     continue

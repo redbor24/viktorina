@@ -6,41 +6,41 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import (CommandHandler, ConversationHandler, Filters,
                           MessageHandler, Updater)
 
-import config
-from config import (CHECK_ANSWER, CHOOSING, END_GAME, NEXT_QUESTION,
-                    REPEAT_GAME, REPEAT_QUESTION, UNKNOWN)
+import constants
+from constants import (CHECK_ANSWER, CHOOSING, END_GAME, NEXT_QUESTION,
+                       REPEAT_GAME, REPEAT_QUESTION, UNKNOWN)
 from quiz import QuizQuestions
 from viktorina_redis import (get_next_question, get_redis_var,
                              save_answered_question_ids, set_redis_var)
 
 USER_PREFIX = 'tg'
 
-logging.basicConfig(format=config.log_format, level=logging.INFO)
+logging.basicConfig(format=constants.log_format, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-yes_no_markup = ReplyKeyboardMarkup([[config.YES, config.NO]], resize_keyboard=True, one_time_keyboard=True)
-helpme_markup = ReplyKeyboardMarkup([[config.HELPME]], resize_keyboard=True, one_time_keyboard=True)
+yes_no_markup = ReplyKeyboardMarkup([[constants.YES, constants.NO]], resize_keyboard=True, one_time_keyboard=True)
+helpme_markup = ReplyKeyboardMarkup([[constants.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 
 def start(update, _):
     update.message.reply_text(
-        config.START_GAME.format(update.effective_user.first_name),
+        constants.START_GAME.format(update.effective_user.first_name),
         reply_markup=yes_no_markup)
     return CHOOSING
 
 
 def start_game(update, _):
-    if update.message.text == config.YES:
-        update.message.reply_text(config.GOGOGO)
-        update.message.reply_text(config.CHOOSING_RANDOM_QUIZ)
+    if update.message.text == constants.YES:
+        update.message.reply_text(constants.GOGOGO)
+        update.message.reply_text(constants.CHOOSING_RANDOM_QUIZ)
 
         question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
-        update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
+        update.message.reply_text(constants.QUESTION.format(question['query']), reply_markup=helpme_markup)
         return CHECK_ANSWER
 
-    elif update.message.text == config.NO:
-        update.message.reply_text(config.LET_ANOTHER_TIME)
+    elif update.message.text == constants.NO:
+        update.message.reply_text(constants.LET_ANOTHER_TIME)
         return ConversationHandler.END
 
     else:
@@ -48,14 +48,14 @@ def start_game(update, _):
 
 
 def check_answer(update, _):
-    if update.message.text == config.HELPME:
+    if update.message.text == constants.HELPME:
         question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', 'int')
         question = quiz.get_question(question_id)
-        update.message.reply_text(config.RIGHT_ANSWER.format(question['answer']))
+        update.message.reply_text(constants.RIGHT_ANSWER.format(question['answer']))
         set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
         save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
 
-        update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
+        update.message.reply_text(constants.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
         return NEXT_QUESTION
 
@@ -63,58 +63,58 @@ def check_answer(update, _):
     question = quiz.get_question(question_id)
 
     if update.message.text.lower() in question['answer'].lower():
-        update.message.reply_text(config.PRAISE)
-        update.message.reply_text(config.ANSWER.format(question['answer'].strip()))
+        update.message.reply_text(constants.PRAISE)
+        update.message.reply_text(constants.ANSWER.format(question['answer'].strip()))
         set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
         save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
 
-        update.message.reply_text(config.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
+        update.message.reply_text(constants.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
         return NEXT_QUESTION
 
     else:
-        update.message.reply_text(config.WRONG_ANSWER, reply_markup=yes_no_markup)
+        update.message.reply_text(constants.WRONG_ANSWER, reply_markup=yes_no_markup)
         return REPEAT_QUESTION
 
 
 def next_question(update, _):
-    if update.message.text == config.YES:
+    if update.message.text == constants.YES:
         question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
-        update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
+        update.message.reply_text(constants.QUESTION.format(question['query']), reply_markup=helpme_markup)
         return CHECK_ANSWER
 
-    elif update.message.text == config.NO:
-        update.message.reply_text(config.LET_NEW_GAME, reply_markup=yes_no_markup)
+    elif update.message.text == constants.NO:
+        update.message.reply_text(constants.LET_NEW_GAME, reply_markup=yes_no_markup)
         return REPEAT_GAME
 
 
 def repeat_question(update, _):
-    if update.message.text == config.YES:
+    if update.message.text == constants.YES:
         question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
-        update.message.reply_text(config.QUESTION.format(question['query']), reply_markup=helpme_markup)
+        update.message.reply_text(constants.QUESTION.format(question['query']), reply_markup=helpme_markup)
         return CHECK_ANSWER
 
-    elif update.message.text == config.NO:
-        update.message.reply_text(config.LET_NEW_GAME, reply_markup=yes_no_markup)
+    elif update.message.text == constants.NO:
+        update.message.reply_text(constants.LET_NEW_GAME, reply_markup=yes_no_markup)
         return REPEAT_GAME
 
 
 def repeat_game(update, context):
-    if update.message.text == config.YES:
+    if update.message.text == constants.YES:
         start_game(update, context)
         return CHECK_ANSWER
-    elif update.message.text == config.NO:
-        update.message.reply_text(config.LET_ANOTHER_TIME)
+    elif update.message.text == constants.NO:
+        update.message.reply_text(constants.LET_ANOTHER_TIME)
         return ConversationHandler.END
 
 
 def end_game(update, _):
-    update.message.reply_text(config.STOP_GAME.format(0, 0), reply_markup=yes_no_markup)
+    update.message.reply_text(constants.STOP_GAME.format(0, 0), reply_markup=yes_no_markup)
     return REPEAT_GAME
 
 
 def done(update, _):
-    update.message.reply_text(config.BYE)
+    update.message.reply_text(constants.BYE)
     return ConversationHandler.END
 
 
