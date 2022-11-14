@@ -62,6 +62,58 @@ def start_game(event, api, redis, quiz):
         redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), END_GAME)
 
 
+def next_question(event, api, redis, quiz):
+    if event.text == constants.YES:
+        question = get_next_question(USER_PREFIX, event.user_id, redis, quiz)
+        send_message(event, api, constants.QUESTION.format(question['query']), get_help_keyboard())
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), CHECK_ANSWER)
+
+    elif vk_event.text == constants.NO:
+        send_message(event, api, constants.LET_NEW_GAME, get_yesno_keyboard())
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), REPEAT_GAME)
+
+
+def repeat_question(event, api, redis, quiz):
+    if event.text == constants.YES:
+        question = get_next_question(USER_PREFIX, user_id, redis, quiz)
+        send_message(event, api, constants.QUESTION.format(question['query']), get_help_keyboard())
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), CHECK_ANSWER)
+
+    elif event.text == constants.NO:
+        send_message(event, api, constants.LET_NEW_GAME, get_yesno_keyboard())
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), REPEAT_GAME)
+
+
+def check_answer(event, api, redis, quiz):
+    question = get_next_question(USER_PREFIX, event.user_id, redis, quiz)
+    if event.text == constants.HELPME:
+        send_message(event, api, constants.RIGHT_ANSWER.format(question['answer']))
+        send_message(event, api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
+
+        redis.delete(redis_var_template.format(USER_PREFIX, event.user_id, redis_unanswered_question_id))
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), NEXT_QUESTION)
+        return
+
+    if vk_event.text.lower() in question['answer'].lower():
+        send_message(event, api, constants.PRAISE)
+        send_message(event, api, constants.ANSWER.format(question['answer'].strip()))
+        send_message(event, api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
+
+        redis.delete(redis_var_template.format(USER_PREFIX, event.user_id, redis_unanswered_question_id))
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), NEXT_QUESTION)
+
+    else:
+        send_message(event, api, constants.WRONG_ANSWER, get_yesno_keyboard())
+
+        redis.set(redis_var_template.format(USER_PREFIX, event.user_id, redis_conversation_state), REPEAT_QUESTION)
+
+
 if __name__ == "__main__":
     logging.basicConfig(format=constants.log_format, level=logging.INFO)
     logger = logging.getLogger('vkbot')
@@ -98,86 +150,20 @@ if __name__ == "__main__":
                 continue
 
             elif user_state == CHOOSING:
-                if vk_event.text == constants.YES:
-                    send_message(vk_event, vk_api, constants.GOGOGO)
-                    send_message(vk_event, vk_api, constants.CHOOSING_RANDOM_QUIZ)
-
-                    question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), CHECK_ANSWER)
-                    continue
-
-                elif vk_event.text == constants.NO:
-                    send_message(vk_event, vk_api, constants.LET_ANOTHER_TIME)
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), END_GAME)
-                    continue
+                start_game(vk_event, vk_api, rds, quiz)
+                continue
 
             elif user_state == CHECK_ANSWER:
-                question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                if vk_event.text == constants.HELPME:
-                    send_message(vk_event, vk_api, constants.RIGHT_ANSWER.format(question['answer']))
-                    send_message(vk_event, vk_api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
-
-                    rds.delete(redis_var_template.format(USER_PREFIX, user_id, redis_unanswered_question_id))
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), NEXT_QUESTION)
-                    continue
-
-                if vk_event.text.lower() in question['answer'].lower():
-                    send_message(vk_event, vk_api, constants.PRAISE)
-                    send_message(vk_event, vk_api, constants.ANSWER.format(question['answer'].strip()))
-                    send_message(vk_event, vk_api, constants.ASK_NEXT_QUESTION, get_yesno_keyboard())
-
-                    rds.delete(redis_var_template.format(USER_PREFIX, user_id, redis_unanswered_question_id))
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), NEXT_QUESTION)
-                    continue
-
-                else:
-                    send_message(vk_event, vk_api, constants.WRONG_ANSWER, get_yesno_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), REPEAT_QUESTION)
-                    continue
+                check_answer(vk_event, vk_api, rds, quiz)
+                continue
 
             elif user_state == REPEAT_QUESTION:
-                if vk_event.text == constants.YES:
-                    question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), CHECK_ANSWER)
-                    continue
-
-                elif vk_event.text == constants.NO:
-                    send_message(vk_event, vk_api, constants.LET_NEW_GAME, get_yesno_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), REPEAT_GAME)
-                    continue
+                repeat_question(vk_event, vk_api, rds, quiz)
+                continue
 
             elif user_state == REPEAT_GAME:
-                if vk_event.text == constants.YES:
-                    start_game(vk_event, vk_api, rds, quiz)
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), CHECK_ANSWER)
-                    continue
-
-                elif vk_event.text == constants.NO:
-                    send_message(vk_event, vk_api, constants.LET_ANOTHER_TIME)
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), END_GAME)
-                    continue
+                start_game(vk_event, vk_api, rds, quiz)
+                continue
 
             elif user_state == NEXT_QUESTION:
-                if vk_event.text == constants.YES:
-                    question = get_next_question(USER_PREFIX, user_id, rds, quiz)
-                    send_message(vk_event, vk_api, constants.QUESTION.format(question['query']), get_help_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), CHECK_ANSWER)
-                    continue
-
-                elif vk_event.text == constants.NO:
-                    send_message(vk_event, vk_api, constants.LET_NEW_GAME, get_yesno_keyboard())
-
-                    rds.set(redis_var_template.format(USER_PREFIX, user_id, redis_conversation_state), REPEAT_GAME)
-                    continue
+                next_question(vk_event, vk_api, rds, quiz)
