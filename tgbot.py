@@ -8,10 +8,9 @@ from telegram.ext import (CommandHandler, ConversationHandler, Filters,
 
 import constants
 from constants import (CHECK_ANSWER, CHOOSING, END_GAME, NEXT_QUESTION,
-                       REPEAT_GAME, REPEAT_QUESTION)
-from quiz import QuizQuestions
-from viktorina_redis import (get_next_question, get_redis_var,
-                             save_answered_question_ids, set_redis_var)
+                       REPEAT_GAME, REPEAT_QUESTION,
+                       redis_unanswered_question_id, redis_var_template)
+from quiz import QuizQuestions, get_next_question
 
 USER_PREFIX = 'tg'
 
@@ -19,7 +18,7 @@ yes_no_markup = ReplyKeyboardMarkup([[constants.YES, constants.NO]], resize_keyb
 helpme_markup = ReplyKeyboardMarkup([[constants.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 
-def start_converstaion(update, _):
+def start_conversation(update, _):
     update.message.reply_text(
         constants.START_GAME.format(update.effective_user.first_name),
         reply_markup=yes_no_markup)
@@ -41,27 +40,22 @@ def start_game(update, _):
 
 
 def check_answer(update, _):
-    if update.message.text == constants.HELPME:
-        question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', 'int')
-        question = quiz.get_question(question_id)
-        update.message.reply_text(constants.RIGHT_ANSWER.format(question['answer']))
-        set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
-        save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
+    question = get_next_question(USER_PREFIX, update.effective_user.id, rds, quiz)
 
+    if update.message.text == constants.HELPME:
+        update.message.reply_text(constants.RIGHT_ANSWER.format(question['answer']))
         update.message.reply_text(constants.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
 
-        return NEXT_QUESTION
+        rds.delete(redis_var_template.format(USER_PREFIX, update.effective_user.id, redis_unanswered_question_id))
 
-    question_id = get_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', 'int')
-    question = quiz.get_question(question_id)
+        return NEXT_QUESTION
 
     if update.message.text.lower() in question['answer'].lower():
         update.message.reply_text(constants.PRAISE)
         update.message.reply_text(constants.ANSWER.format(question['answer'].strip()))
-        set_redis_var(rds, USER_PREFIX, update.effective_user.id, 'question_id', '')
-        save_answered_question_ids(USER_PREFIX, update.effective_user.id, rds, question_id)
-
         update.message.reply_text(constants.ASK_NEXT_QUESTION, reply_markup=yes_no_markup)
+
+        rds.delete(redis_var_template.format(USER_PREFIX, update.effective_user.id, redis_unanswered_question_id))
 
         return NEXT_QUESTION
 
@@ -135,7 +129,7 @@ if __name__ == '__main__':
     dp = updater.dispatcher
 
     main_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start_converstaion)],
+        entry_points=[CommandHandler('start', start_conversation)],
 
         states={
             CHOOSING: [MessageHandler(Filters.text & ~Filters.command, start_game)],
@@ -149,7 +143,7 @@ if __name__ == '__main__':
         fallbacks=[MessageHandler(Filters.text & ~Filters.command, stop_conversation)]
     )
     dp.add_handler(main_conv_handler)
-    dp.add_handler(CommandHandler('start', start_converstaion))
+    dp.add_handler(CommandHandler('start', start_conversation))
     dp.add_error_handler(handle_error)
     updater.start_polling()
     updater.idle()
