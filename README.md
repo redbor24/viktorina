@@ -33,7 +33,7 @@ pip install -r requirements.txt
 ```
 TG_TOKEN=<ваш Телеграм-токен>
 VK_TOKEN=<токен ВКонтакте>
-REDIS_LINK=<имя точки входа redis>
+REDIS_HOST=<имя точки входа redis>
 REDIS_PORT=<порт для подклчения к redis>
 REDIS_PASSWORD=<пароль для подклчения к redis>
 ```
