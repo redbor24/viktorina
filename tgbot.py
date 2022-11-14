@@ -15,10 +15,6 @@ from viktorina_redis import (get_next_question, get_redis_var,
 
 USER_PREFIX = 'tg'
 
-logging.basicConfig(format=constants.log_format, level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
 yes_no_markup = ReplyKeyboardMarkup([[constants.YES, constants.NO]], resize_keyboard=True, one_time_keyboard=True)
 helpme_markup = ReplyKeyboardMarkup([[constants.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
@@ -123,6 +119,9 @@ def error(update, update_error):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format=constants.log_format, level=logging.INFO)
+    logger = logging.getLogger('tgbot')
+
     env = Env()
     env.read_env()
 

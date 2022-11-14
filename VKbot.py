@@ -15,9 +15,6 @@ from quiz import QuizQuestions
 
 USER_PREFIX = 'vk'
 
-logging.basicConfig(format=constants.log_format, level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 def send_message(event, api, message='', keyboard=None):
     api.messages.send(
@@ -66,6 +63,9 @@ def start_game(event, api, redis, quiz):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format=constants.log_format, level=logging.INFO)
+    logger = logging.getLogger('vkbot')
+
     env = Env()
     env.read_env()
 
