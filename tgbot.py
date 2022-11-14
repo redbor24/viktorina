@@ -19,7 +19,7 @@ yes_no_markup = ReplyKeyboardMarkup([[constants.YES, constants.NO]], resize_keyb
 helpme_markup = ReplyKeyboardMarkup([[constants.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
 
-def start(update, _):
+def start_converstaion(update, _):
     update.message.reply_text(
         constants.START_GAME.format(update.effective_user.first_name),
         reply_markup=yes_no_markup)
@@ -106,12 +106,12 @@ def end_game(update, _):
     return REPEAT_GAME
 
 
-def done(update, _):
+def stop_conversation(update, _):
     update.message.reply_text(constants.BYE)
     return ConversationHandler.END
 
 
-def error(update, update_error):
+def handle_error(update, update_error):
     logger.warning('Update "%s" caused error "%s"', update, update_error)
 
 
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     dp = updater.dispatcher
 
     main_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', start_converstaion)],
 
         states={
             CHOOSING: [MessageHandler(Filters.text & ~Filters.command, start_game)],
@@ -146,10 +146,10 @@ if __name__ == '__main__':
             REPEAT_GAME: [MessageHandler(Filters.text & ~Filters.command, repeat_game)],
         },
 
-        fallbacks=[MessageHandler(Filters.text & ~Filters.command, done)]
+        fallbacks=[MessageHandler(Filters.text & ~Filters.command, stop_conversation)]
     )
     dp.add_handler(main_conv_handler)
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_error_handler(error)
+    dp.add_handler(CommandHandler('start', start_converstaion))
+    dp.add_error_handler(handle_error)
     updater.start_polling()
     updater.idle()
