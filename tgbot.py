@@ -17,6 +17,8 @@ USER_PREFIX = 'tg'
 yes_no_markup = ReplyKeyboardMarkup([[constants.YES, constants.NO]], resize_keyboard=True, one_time_keyboard=True)
 helpme_markup = ReplyKeyboardMarkup([[constants.HELPME]], resize_keyboard=True, one_time_keyboard=True)
 
+logger = logging.getLogger('tgbot')
+
 
 def start_conversation(update, _):
     update.message.reply_text(
@@ -111,7 +113,6 @@ def handle_error(update, update_error):
 
 if __name__ == '__main__':
     logging.basicConfig(format=constants.log_format, level=logging.INFO)
-    logger = logging.getLogger('tgbot')
 
     env = Env()
     env.read_env()
