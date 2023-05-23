@@ -59,25 +59,15 @@ python VKbot.py
 ## Локальная установка с использованием [Docker](https://www.docker.com/)
 Для этого варианта использования ботов вам [Docker CLI](https://www.docker.com/). 
 
-### 1. Откройте консоль
-### 2. Скачайте проект
+### 1. Откройте консоль и скачайте проект
 ```shell
 git clone https://github.com/redbor24/viktorina.git
 cd viktorina
 ```
-### 3. Задайте переменные окружения
-Создайте файл `.env` со следующим содержимым:
-```
-TG_TOKEN=<ваш Телеграм-токен>
-VK_TOKEN=<токен ВКонтакте>
-REDIS_HOST=<имя точки входа redis>
-REDIS_PORT=<порт для подклчения к redis>
-REDIS_PASSWORD=<пароль для подклчения к redis>
-```
-### 4. Выполните в консоли
+### 2. Выполните в консоли
 ```shell
-docker build -t quiz-docker_local .
-docker run -d quiz-docker_local
+docker build -t quiz-docker_local:3.10-slim .
+docker run --name quiz --rm -d --env TG_TOKEN=<ваш Телеграм-токен> --env REDIS_HOST=<имя точки входа redis> --env REDIS_PORT=<порт для подклчения к redis> --env REDIS_PASSWORD=<пароль для подклчения к redis> quiz-docker_local:3.10-slim
 ```
 
 ## Разворачивание ботов на [Heroku](https://heroku.com)
