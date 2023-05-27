@@ -8,5 +8,6 @@ COPY requirements.txt /usr/src/app/
 RUN pip install --requirement /usr/src/app/requirements.txt
 COPY . /usr/src/app/
 
-CMD ["/bin/sh", "-c", "python tgbot.py"]
-CMD ["/bin/sh", "-c", "python VKbot.py"]
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["python VKbot.py"]
+#CMD ["/bin/sh", "-c", "python VKbot.py"]
