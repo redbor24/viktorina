@@ -56,8 +56,8 @@ python tgbot.py
 python VKbot.py
 ```
 
-## Локальная установка с использованием [Docker](https://www.docker.com/)
-Для этого варианта использования ботов вам [Docker CLI](https://www.docker.com/). 
+## Запуск с использованием [Docker](https://www.docker.com/)
+Для этого варианта использования ботов потребуется [Docker CLI](https://www.docker.com/). 
 
 ### 1. Откройте консоль и скачайте проект
 ```shell
@@ -65,9 +65,15 @@ git clone https://github.com/redbor24/viktorina.git
 cd viktorina
 ```
 ### 2. Выполните в консоли
+Docker рекомендует каждое приложение запускать отдельном контейнере. Поэтому создайте два разных контейнера, каждый под своего бота:  
 ```shell
-docker build -t quiz-docker_local:3.10-slim .
-docker run --name quiz --rm -d --env TG_TOKEN=<ваш Телеграм-токен> --env REDIS_HOST=<имя точки входа redis> --env REDIS_PORT=<порт для подклчения к redis> --env REDIS_PASSWORD=<пароль для подклчения к redis> quiz-docker_local:3.10-slim
+docker build -f Dockerfile_tg -t quiz-docker:tg .
+docker build -f Dockerfile_vk -t quiz-docker:vk .
+```
+И запустите их:
+```shell
+docker run --name quiz-tg --rm -d --env TG_TOKEN=<Telegram-token> --env REDIS_HOST=<Redis-host> --env REDIS_PORT=<Redis-port> --env REDIS_PASSWORD=<Redis-password> quiz-docker:tg
+docker run --name quiz-vk --rm -d --env VK_TOKEN=<VK-token> --env REDIS_HOST=<Redis-host> --env REDIS_PORT=<Redis-port> --env REDIS_PASSWORD=<Redis-password> quiz-docker:vk
 ```
 
 ## Разворачивание ботов на [Heroku](https://heroku.com)
