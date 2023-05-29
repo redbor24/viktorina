@@ -10,4 +10,3 @@ COPY . /usr/src/app/
 
 ENTRYPOINT ["/bin/sh", "-c"]
 CMD ["python tgbot.py"]
-#CMD ["/bin/sh", "-c", "python VKbot.py"]
